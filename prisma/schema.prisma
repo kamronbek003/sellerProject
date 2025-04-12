@@ -1,0 +1,113 @@
+// Bu faylning boshidagi qism. Uni o'zgartirish shart emas.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Enumlar (Bular ham o'zgarishsiz qoladi)
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum ActiveStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// Modellar (id va aloqador maydonlarga @db.ObjectId qo'shildi)
+model Seller {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId // Tuzatildi
+  firstName   String
+  lastName    String
+  phone       String       @unique
+  password    String
+  dateBirth   String
+  nameOfStore String
+  image       String
+  logo        String
+  isActive    ActiveStatus @default(ACTIVE)
+  paymentTime DateTime
+  botToken    String
+  orders      Order[]
+  categories  Category[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Customer {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId // Tuzatildi
+  telegramId String    @unique
+  fullName   String
+  phone      String
+  orders     Order[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Order {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId // Tuzatildi
+  userId        String        @db.ObjectId // Tuzatildi (Customer ID si ObjectId bo'lgani uchun)
+  createdAt     DateTime      @default(now())
+  totalPrice    String
+  paymentStatus PaymentStatus @default(PENDING)
+  location      String
+  sellerId      String        @db.ObjectId // Tuzatildi (Seller ID si ObjectId bo'lgani uchun)
+  seller        Seller        @relation(fields: [sellerId], references: [id])
+  customer      Customer      @relation(fields: [userId], references: [id])
+  orderItems    OrderItem[]
+  updatedAt     DateTime      @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId // Tuzatildi
+  orderId   String   @db.ObjectId // Tuzatildi (Order ID si ObjectId bo'lgani uchun)
+  productId String   @db.ObjectId // Tuzatildi (Product ID si ObjectId bo'lgani uchun)
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId // Tuzatildi
+  name        String
+  description String
+  color       String
+  image       String
+  price       String
+  categoryId  String      @db.ObjectId // Tuzatildi (Category ID si ObjectId bo'lgani uchun)
+  category    Category    @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Category {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId // Tuzatildi
+  name      String
+  image     String
+  sellerId  String    @db.ObjectId // Tuzatildi (Seller ID si ObjectId bo'lgani uchun)
+  seller    Seller    @relation(fields: [sellerId], references: [id])
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([name, sellerId])
+}
+
+model Admin {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId // Tuzatildi
+  name      String
+  phone     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
